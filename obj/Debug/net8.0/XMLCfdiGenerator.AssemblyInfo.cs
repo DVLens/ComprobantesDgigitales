@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("XMLCfdiGenerator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cd778ce00f0d5b3a7946cb322809b3d37c711254")]
 [assembly: System.Reflection.AssemblyProductAttribute("XMLCfdiGenerator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("XMLCfdiGenerator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace XMLCfdiGenerator.Models
@@ -12,14 +13,35 @@ namespace XMLCfdiGenerator.Models
         /// <summary>
         /// Nodo principal que engloba todos los datos del comprobante.
         /// </summary>
-        public required NodoComprobante nodoComprobante {get; set;}
+        public required NodoComprobante nodoComprobante { get; set; }
     }
     /// <summary>
-    /// Elementos del nodo comprobante.
+    /// Estándar de Comprobante Fiscal Digital por Internet.
     /// </summary>
-    [XmlRoot(ElementName = "cfdi:Comprobante", Namespace = "http://www.sat.gob.mx/cfd/4")]
+    [XmlRoot(ElementName = "Comprobante", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoComprobante
     {
+        [XmlNamespaceDeclarations]
+        public XmlSerializerNamespaces xmlns = new XmlSerializerNamespaces(new[]
+    {
+        new XmlQualifiedName("cfdi", "http://www.sat.gob.mx/cfd/4"),
+        new XmlQualifiedName("xs", "http://www.w3.org/2001/XMLSchema"),
+        new XmlQualifiedName("catCFDI", "http://www.sat.gob.mx/sitio_internet/cfd/catalogos"),
+        new XmlQualifiedName("tdCFDI", "http://www.sat.gob.mx/sitio_internet/cfd/tipoDatos/tdCFDI")
+    });
+
+        public NodoInformacionGlobal? InformacionGlobal { get; set; }
+        public NodoCfdisRelacionados? CfdiRelacionados { get; set; }
+        [Required(ErrorMessage = "El comprobante debe contar con el nodo emisor.")]
+        public NodoEmisor Emisor { get; set; }
+        [Required(ErrorMessage = "El comprobante debe contar con el nodo receptor.")]
+        public NodoReceptor Receptor { get; set; }
+        [Required(ErrorMessage = "El comprobante debe contar con almenos una lista de conceptos.")]
+        public NodoConceptos Conceptos { get; set; }
+
+        public required NodoImpuestos Impuestos { get; set; }
+
+        public required NodoComplemento Complemento { get; set; }
         /// <summary>
         /// Atributo requerido con valor prefijado a 4.0 que indica la versión del estándar bajo el que se encuentra expresado el comprobante. 
         /// </summary>
@@ -137,15 +159,62 @@ namespace XMLCfdiGenerator.Models
         [StringLength(5, MinimumLength = 5, ErrorMessage = "La Confirmación debe tener exactamente 5 caracteres.")]
         [RegularExpression(@"[0-9a-zA-Z]{5}", ErrorMessage = "La Confirmación debe contener solo caracteres alfanuméricos.")]
         public string? Confirmacion { get; set; }
-        
-        public NodoEmisor Emisor { get; set; }
-        public required NodoReceptor Receptor { get; set; }
-        public required NodoConceptos Conceptos { get; set; }
-
-        public required NodoImpuestos Impuestos { get; set; }
-        
-        public required NodoComplemento Complemento { get; set; }
-
+    }
+    /// <summary>
+    /// Nodo condicional para precisar la información relacionada con el comprobante global.
+    /// </summary>
+    [XmlRoot(ElementName = "InformacionGlobal", Namespace = "http://www.sat.gob.mx/cfd/4")]
+    public class NodoInformacionGlobal
+    {
+        /// <summary>
+        /// Atributo requerido para expresar el período al que corresponde la información del comprobante global.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Periodicidad")]
+        [Required(ErrorMessage = "La periodicidad es requerida.")]
+        public string Periodicidad { get; set; }
+        /// <summary>
+        /// Atributo requerido para expresar el mes o los meses al que corresponde la información del comprobante global.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Meses")]
+        [Required(ErrorMessage = "El mes o los meses son requeridos.")]
+        public string Meses { get; set; }
+        /// <summary>
+        /// Atributo requerido para expresar el año al que corresponde la información del comprobante global.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Año")]
+        [Required(ErrorMessage = "El año es requerido.")]
+        [Range(2019, short.MaxValue, ErrorMessage = "El año debe ser 2019 o posterior.")]
+        public short Año { get; set; }
+    }
+    /// <summary>
+    /// Nodo opcional para precisar la información de los comprobantes relacionados.
+    /// </summary>
+    public class NodoCfdisRelacionados
+    {
+        /// <summary>
+        /// Lista de nodos de Cfdis relacionados.
+        /// </summary>
+        public List<NodoCfdiRelacionado> CfdiRelacionados { get; set; }
+    }
+    /// <summary>
+    /// Nodo requerido para precisar la información de los comprobantes relacionados.
+    /// </summary>
+    public class NodoCfdiRelacionado
+    {
+        /// <summary>
+        /// Atributo requerido para registrar el folio fiscal (UUID) de un CFDI relacionado con el presente comprobante, por ejemplo: Si el CFDI relacionado es un comprobante de traslado que sirve para registrar el movimiento de la mercancía. Si este comprobante se usa como nota de crédito o nota de débito del comprobante relacionado. Si este comprobante es una devolución sobre el comprobante relacionado. Si éste sustituye a una factura cancelada.
+        /// </summary>
+        [XmlAttribute(AttributeName = "UUID")]
+        [Required(ErrorMessage = "El UUID es requerido.")]
+        [StringLength(36, MinimumLength = 36, ErrorMessage = "El UUID debe tener exactamente 36 caracteres.")]
+        [RegularExpression(@"[a-f0-9A-F]{8}-[a-f0-9A-F]{4}-[a-f0-9A-F]{4}-[a-f0-9A-F]{4}-[a-f0-9A-F]{12}", ErrorMessage = "El UUID debe seguir el formato XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.")]
+        public string UUID { get; set; }
+        /// <summary>
+        /// Atributo requerido para indicar la clave de la relación que existe entre éste que se está generando y el o los CFDI previos.
+        /// </summary>
+        [XmlAttribute(AttributeName = "TipoRelacion")]
+        [Required(ErrorMessage = "El tipo de relación es requerido.")]
+        public string TipoRelacion { get; set; }
     }
     /// <summary>
     /// Nodo requerido para expresar la información del contribuyente emisor del comprobante.
@@ -156,7 +225,7 @@ namespace XMLCfdiGenerator.Models
         /// <summary>
         /// Atributo requerido para registrar la Clave del Registro Federal de Contribuyentes correspondiente al contribuyente emisor del comprobante.
         /// </summary>
-        [XmlAttribute(AttributeName = "Rfc")]        
+        [XmlAttribute(AttributeName = "Rfc")]
         [Required(ErrorMessage = "El RFC es un campo obligatorio.")]
         [RegularExpression(@"[A-ZÑ&]{3,4}[0-9]{6}[A-Z0-9]{3}", ErrorMessage = "El RFC debe cumplir con el formato requerido.")]
         public string Rfc { get; set; }
@@ -175,7 +244,6 @@ namespace XMLCfdiGenerator.Models
         [Required(ErrorMessage = "El régimen fiscal es un campo obligatorio.")]
         public string RegimenFiscal { get; set; }
     }
-
     /// <summary>
     /// Nodo requerido para precisar la información del contribuyente receptor del comprobante.
     /// </summary>
@@ -202,9 +270,14 @@ namespace XMLCfdiGenerator.Models
         /// </summary>
         [XmlAttribute(AttributeName = "NumRegIdTrib")]
         public string? NumRegIdTrib { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para incorporar la clave del régimen fiscal del contribuyente receptor al que aplicará el efecto fiscal de este comprobante.
+        /// </summary>
         [XmlAttribute(AttributeName = "RegimenFiscalReceptor")]
         public string RegimenFiscalReceptor { get; set; }
+        /// <summary>
+        /// Atributo requerido para registrar el código postal del domicilio fiscal del receptor del comprobante.
+        /// </summary>
         [XmlAttribute(AttributeName = "DomicilioFiscalReceptor")]
         public string DomicilioFiscalReceptor { get; set; }
         /// <summary>
@@ -214,60 +287,201 @@ namespace XMLCfdiGenerator.Models
         public required string UsoCFDI { get; set; }
     }
     [XmlRoot(ElementName = "cfdi:Conceptos", Namespace = "http://www.sat.gob.mx/cfd/4")]
-    public class NodoConceptos {
-        public List<NodoConcepto> ListaConceptos;
+    public class NodoConceptos
+    {
+        public List<NodoConcepto> Conceptos { get; set; }
     }
     [XmlRoot(ElementName = "cfdi:Concepto", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoConcepto
     {
+        /// <summary>
+        /// Nodo condicional para capturar los impuestos aplicables al presente concepto.
+        /// </summary>
+        public List<NodoImpuestos>? Impuestos { get; set; }
+
+        public NodoACuentaTerceros ACuentaTerceros { get; set; }
+
+        public InformacionAduanera InformacionAduanera { get; set; }
+        public CuentaPredial CuentaPredial { get; set; }
+        public ComplementoConcepto ComplementoConcepto { get; set; }
+        /// <summary>
+        /// Atributo requerido para expresar la clave del producto o del servicio amparado por la presente parte. Es requerido y deben utilizar las claves del catálogo de productos y servicios, cuando los conceptos que registren por sus actividades correspondan con dichos conceptos.
+        /// </summary>
         [XmlAttribute(AttributeName = "ClaveProdServ")]
-        public string ClaveProdServ { get; set; }
-        [XmlAttribute(AttributeName = "ClaveUnidad")]
-        public string ClaveUnidad { get; set; }
-        [XmlAttribute(AttributeName = "Cantidad")]
-        public string Cantidad { get; set; }
-        [XmlAttribute(AttributeName = "Unidad")]
-        public string Unidad { get; set; }
+        public string? ClaveProdServ { get; set; }
+        /// <summary>
+        /// Atributo opcional para expresar el número de serie, número de parte del bien o identificador del producto o del servicio amparado por la presente parte. Opcionalmente se puede utilizar claves del estándar GTIN.
+        /// </summary>
         [XmlAttribute(AttributeName = "NoIdentificacion")]
-        public string NoIdentificacion { get; set; }
+        [RegularExpression(@"[^|]{1,100}", ErrorMessage = "El NoIdentificacion no debe contener el carácter '|' y debe tener entre 1 y 100 caracteres.")]
+        [StringLength(100, MinimumLength = 1, ErrorMessage = "El NoIdentificacion debe tener entre 1 y 100 caracteres.")]
+        public string? NoIdentificacion { get; set; }
+        /// <summary>
+        /// Atributo requerido para precisar la cantidad de bienes o servicios del tipo particular definido por la presente parte.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Cantidad")]
+        [Required(ErrorMessage = "El atributo Cantidad es requerido.")]
+        [Range(typeof(decimal), "0.000001", "79228162514264337593543950335", ErrorMessage = "La Cantidad debe ser un valor decimal mayor o igual a 0.000001.")]
+        [RegularExpression(@"^\d+(\.\d{1,6})?$", ErrorMessage = "La Cantidad debe tener hasta 6 dígitos decimales.")]
+        public decimal Cantidad { get; set; }
+        /// <summary>
+        /// Atributo requerido para precisar la clave de unidad de medida estandarizada aplicable para la cantidad expresada en el concepto. La unidad debe corresponder con la descripción del concepto.
+        /// </summary>
+        [XmlAttribute(AttributeName = "ClaveUnidad")]
+        [Required(ErrorMessage = "El atributo ClaveUnidad es requerido.")]
+        public string ClaveUnidad { get; set; }
+        /// <summary>
+        /// Atributo requerido para precisar la descripción del bien o servicio cubierto por la presente parte.
+        /// </summary>
         [XmlAttribute(AttributeName = "Descripcion")]
+        [Required(ErrorMessage = "La descripción es requerida.")]
+        [StringLength(1000, MinimumLength = 1, ErrorMessage = "La descripción debe tener entre 1 y 1000 caracteres.")]
+        [RegularExpression(@"[^|]{1,1000}", ErrorMessage = "La descripción no debe contener el carácter '|'.")]
         public string Descripcion { get; set; }
-        [XmlAttribute(AttributeName = "ObjetoImp")]
-        public string ObjetoImp { get; set; }
+        /// <summary>
+        /// Atributo opcional para precisar la unidad de medida propia de la operación del emisor, aplicable para la cantidad expresada en el concepto. La unidad debe corresponder con la descripción del concepto.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Unidad")]
+        [StringLength(20, MinimumLength = 1, ErrorMessage = "La unidad debe tener entre 1 y 20 caracteres.")]
+        [RegularExpression(@"[^|]{1,20}", ErrorMessage = "La unidad no debe contener el carácter '|'.")]
+        public string Unidad { get; set; }
+        /// <summary>
+        /// Atributo requerido para precisar el valor o precio unitario del bien o servicio cubierto por el presente concepto.
+        /// </summary>
         [XmlAttribute(AttributeName = "ValorUnitario")]
-        public string ValorUnitario { get; set; }
+        [Required(ErrorMessage = "El valor unitario es requerido.")]
+        public decimal ValorUnitario { get; set; }
+        /// <summary>
+        /// Atributo requerido para expresar si la operación comercial es objeto o no de impuesto.
+        /// </summary>
+        [XmlAttribute(AttributeName = "ObjetoImp")]
+        [Required(ErrorMessage = "El objeto importe es requerido.")]
+        public string ObjetoImp { get; set; }
+        /// <summary>
+        /// Atributo requerido para precisar el importe total de los bienes o servicios del presente concepto. Debe ser equivalente al resultado de multiplicar la cantidad por el valor unitario expresado en el concepto. No se permiten valores negativos. 
+        /// </summary>
         [XmlAttribute(AttributeName = "Importe")]
-        public string Importe { get; set; }
-
-        public List<NodoTraslados> Traslados { get; set;}
-
+        public decimal Importe { get; set; }
+        /// <summary>
+        /// Atributo opcional para representar el importe de los descuentos aplicables al concepto. No se permiten valores negativos.
+        /// </summary>
+        [XmlAttribute(AttributeName = "Descuento")]
+        [Range(0, double.MaxValue, ErrorMessage = "El descuento no puede ser negativo.")]
+        public decimal? Descuento { get; set; }
     }
+
+    [XmlRoot(ElementName = "CuentaPredial")]
+    public class CuentaPredial
+    {
+        [XmlAttribute(AttributeName = "Numero")]
+        [StringLength(150, MinimumLength = 1, ErrorMessage = "El número de cuenta predial debe tener entre 1 y 150 caracteres.")]
+        [RegularExpression(@"[0-9a-zA-Z]{1,150}", ErrorMessage = "El número de cuenta predial solo puede contener caracteres alfanuméricos.")]
+        public string Numero { get; set; }
+    }
+    [XmlRoot(ElementName = "ComplementoConcepto")]
+    public class ComplementoConcepto
+    {
+        [XmlAnyElement]
+        public List<XmlElement> Any { get; set; }
+    }
+
+
+    [XmlRoot(ElementName = "InformacionAduanera")]
+    public class InformacionAduanera
+    {
+        [XmlAttribute(AttributeName = "NumeroPedimento")]
+        [StringLength(21, ErrorMessage = "El número de pedimento debe tener 21 caracteres.")]
+        [RegularExpression(@"[0-9]{2} [0-9]{2} [0-9]{4} [0-9]{7}", ErrorMessage = "El formato del número de pedimento es incorrecto.")]
+        public string NumeroPedimento { get; set; }
+    }
+
     [XmlRoot(ElementName = "cfdi:Traslados", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoTraslados
     {
         public List<NodoTraslado> ListaTraslados;
     }
-    [XmlRoot(ElementName = "cfdi:Traslado", Namespace = "http://www.sat.gob.mx/cfd/4")]
+
+    [XmlRoot(ElementName = "Traslado")]
     public class NodoTraslado
     {
         [XmlAttribute(AttributeName = "Base")]
+        [Range(0.000001, double.MaxValue, ErrorMessage = "La base no puede ser negativa.")]
         public decimal Base { get; set; }
+
         [XmlAttribute(AttributeName = "Impuesto")]
         public string Impuesto { get; set; }
+
         [XmlAttribute(AttributeName = "TipoFactor")]
         public string TipoFactor { get; set; }
+
         [XmlAttribute(AttributeName = "TasaOCuota")]
-        public decimal TasaOCuota { get; set; }
+        [Range(0.000000, double.MaxValue, ErrorMessage = "La tasa o cuota no puede ser negativa.")]
+        public decimal? TasaOCuota { get; set; }
+
         [XmlAttribute(AttributeName = "Importe")]
+        [Range(0, double.MaxValue, ErrorMessage = "El importe no puede ser negativo.")]
+        public decimal? Importe { get; set; }
+    }
+    [XmlRoot(ElementName = "cfdi:Retenciones", Namespace = "http://www.sat.gob.mx/cfd/4")]
+    public class NodoRetenciones
+    {
+        public List<NodoRetenciones> ListaTraslados;
+    }
+    [XmlRoot(ElementName = "Retencion")]
+    public class NodoRetencion
+    {
+        [XmlAttribute(AttributeName = "Base")]
+        [Range(0.000001, double.MaxValue, ErrorMessage = "La base no puede ser negativa.")]
+        public decimal Base { get; set; }
+
+        [XmlAttribute(AttributeName = "Impuesto")]
+        public string Impuesto { get; set; }
+
+        [XmlAttribute(AttributeName = "TipoFactor")]
+        public string TipoFactor { get; set; }
+
+        [XmlAttribute(AttributeName = "TasaOCuota")]
+        [Range(0.000000, double.MaxValue, ErrorMessage = "La tasa o cuota no puede ser negativa.")]
+        public decimal TasaOCuota { get; set; }
+
+        [XmlAttribute(AttributeName = "Importe")]
+        [Range(0, double.MaxValue, ErrorMessage = "El importe no puede ser negativo.")]
         public decimal Importe { get; set; }
     }
+
+    /// <summary>
+    /// Nodo condicional para capturar los impuestos aplicables al presente concepto.
+    /// </summary>
     [XmlRoot(ElementName = "cfdi:Impuestos", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoImpuestos
     {
         [XmlAttribute(AttributeName = "TotalImpuestosTrasladados")]
         public decimal TotalImpuestosTrasladados { get; set; }
-        public List<NodoTraslados> ListaTraslados { get; set; }
+
+        public NodoTraslados? NodoTraslados { get; set; }
+        public NodoRetenciones? NodoRetenciones { get; set; }
     }
+
+    [XmlRoot(ElementName = "ACuentaTerceros")]
+    public class NodoACuentaTerceros
+    {
+        [XmlAttribute(AttributeName = "RfcACuentaTerceros")]
+        public string RfcACuentaTerceros { get; set; }
+
+        [XmlAttribute(AttributeName = "NombreACuentaTerceros")]
+        [StringLength(300, MinimumLength = 1, ErrorMessage = "El nombre debe tener entre 1 y 300 caracteres.")]
+        [RegularExpression(@"[^|]{1,300}", ErrorMessage = "El nombre no puede contener el carácter '|'.")]
+        public string NombreACuentaTerceros { get; set; }
+
+        [XmlAttribute(AttributeName = "RegimenFiscalACuentaTerceros")]
+        public string RegimenFiscalACuentaTerceros { get; set; }
+
+        [XmlAttribute(AttributeName = "DomicilioFiscalACuentaTerceros")]
+        [StringLength(5, MinimumLength = 5, ErrorMessage = "El código postal debe tener 5 caracteres.")]
+        [RegularExpression(@"[0-9]{5}", ErrorMessage = "El código postal debe ser numérico de 5 dígitos.")]
+        public string DomicilioFiscalACuentaTerceros { get; set; }
+    }
+
     [XmlRoot(ElementName = "cfdi:Complemento", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoComplemento
     {
