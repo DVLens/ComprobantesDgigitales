@@ -195,6 +195,12 @@ namespace XMLCfdiGenerator.Models
         /// Lista de nodos de Cfdis relacionados.
         /// </summary>
         public List<NodoCfdiRelacionado> CfdiRelacionados { get; set; }
+        /// <summary>
+        /// Atributo requerido para indicar la clave de la relación que existe entre éste que se está generando y el o los CFDI previos.
+        /// </summary>
+        [XmlAttribute(AttributeName = "TipoRelacion")]
+        [Required(ErrorMessage = "El tipo de relación es requerido.")]
+        public string TipoRelacion { get; set; }
     }
     /// <summary>
     /// Nodo requerido para precisar la información de los comprobantes relacionados.
@@ -209,12 +215,6 @@ namespace XMLCfdiGenerator.Models
         [StringLength(36, MinimumLength = 36, ErrorMessage = "El UUID debe tener exactamente 36 caracteres.")]
         [RegularExpression(@"[a-f0-9A-F]{8}-[a-f0-9A-F]{4}-[a-f0-9A-F]{4}-[a-f0-9A-F]{4}-[a-f0-9A-F]{12}", ErrorMessage = "El UUID debe seguir el formato XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX.")]
         public string UUID { get; set; }
-        /// <summary>
-        /// Atributo requerido para indicar la clave de la relación que existe entre éste que se está generando y el o los CFDI previos.
-        /// </summary>
-        [XmlAttribute(AttributeName = "TipoRelacion")]
-        [Required(ErrorMessage = "El tipo de relación es requerido.")]
-        public string TipoRelacion { get; set; }
     }
     /// <summary>
     /// Nodo requerido para expresar la información del contribuyente emisor del comprobante.
@@ -286,11 +286,17 @@ namespace XMLCfdiGenerator.Models
         [XmlAttribute(AttributeName = "UsoCFDI")]
         public required string UsoCFDI { get; set; }
     }
+    /// <summary>
+    /// Nodo requerido para listar los conceptos cubiertos por el comprobante.
+    /// </summary>
     [XmlRoot(ElementName = "cfdi:Conceptos", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoConceptos
     {
         public List<NodoConcepto> Conceptos { get; set; }
     }
+    /// <summary>
+    /// Nodo requerido para registrar la información detallada de un bien o servicio amparado en el comprobante.
+    /// </summary>
     [XmlRoot(ElementName = "cfdi:Concepto", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoConcepto
     {
@@ -299,10 +305,10 @@ namespace XMLCfdiGenerator.Models
         /// </summary>
         public List<NodoImpuestos>? Impuestos { get; set; }
 
-        public NodoACuentaTerceros ACuentaTerceros { get; set; }
+        public NodoACuentaTerceros? ACuentaTerceros { get; set; }
 
-        public InformacionAduanera InformacionAduanera { get; set; }
-        public CuentaPredial CuentaPredial { get; set; }
+        public InformacionAduanera? InformacionAduanera { get; set; }
+        public CuentaPredial? CuentaPredial { get; set; }
         public ComplementoConcepto ComplementoConcepto { get; set; }
         /// <summary>
         /// Atributo requerido para expresar la clave del producto o del servicio amparado por la presente parte. Es requerido y deben utilizar las claves del catálogo de productos y servicios, cuando los conceptos que registren por sus actividades correspondan con dichos conceptos.
@@ -385,10 +391,15 @@ namespace XMLCfdiGenerator.Models
         public List<XmlElement> Any { get; set; }
     }
 
-
+    /// <summary>
+    /// Nodo opcional para introducir la información aduanera aplicable cuando se trate de ventas de primera mano de mercancías importadas o se trate de operaciones de comercio exterior con bienes o servicios.
+    /// </summary>
     [XmlRoot(ElementName = "InformacionAduanera")]
     public class InformacionAduanera
     {
+        /// <summary>
+        /// Atributo requerido para expresar el número del pedimento que ampara la importación del bien que se expresa en el siguiente formato: últimos 2 dígitos del año de validación seguidos por dos espacios, 2 dígitos de la aduana de despacho seguidos por dos espacios, 4 dígitos del número de la patente seguidos por dos espacios, 1 dígito que corresponde al último dígito del año en curso, salvo que se trate de un pedimento consolidado iniciado en el año inmediato anterior o del pedimento original de una rectificación, seguido de 6 dígitos de la numeración progresiva por aduana.
+        /// </summary>
         [XmlAttribute(AttributeName = "NumeroPedimento")]
         [StringLength(21, ErrorMessage = "El número de pedimento debe tener 21 caracteres.")]
         [RegularExpression(@"[0-9]{2} [0-9]{2} [0-9]{4} [0-9]{7}", ErrorMessage = "El formato del número de pedimento es incorrecto.")]
@@ -404,20 +415,31 @@ namespace XMLCfdiGenerator.Models
     [XmlRoot(ElementName = "Traslado")]
     public class NodoTraslado
     {
+        /// <summary>
+        /// Atributo requerido para señalar la base para el cálculo del impuesto, la determinación de la base se realiza de acuerdo con las disposiciones fiscales vigentes. No se permiten valores negativos.
+        /// </summary>
         [XmlAttribute(AttributeName = "Base")]
         [Range(0.000001, double.MaxValue, ErrorMessage = "La base no puede ser negativa.")]
         public decimal Base { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar la clave del tipo de impuesto trasladado aplicable al concepto.
+        /// </summary>
         [XmlAttribute(AttributeName = "Impuesto")]
         public string Impuesto { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar la clave del tipo de factor que se aplica a la base del impuesto.
+        /// </summary>
         [XmlAttribute(AttributeName = "TipoFactor")]
         public string TipoFactor { get; set; }
-
+        /// <summary>
+        /// Atributo condicional para señalar el valor de la tasa o cuota del impuesto que se traslada para el presente concepto. Es requerido cuando el atributo TipoFactor tenga una clave que corresponda a Tasa o Cuota.
+        /// </summary>
         [XmlAttribute(AttributeName = "TasaOCuota")]
         [Range(0.000000, double.MaxValue, ErrorMessage = "La tasa o cuota no puede ser negativa.")]
         public decimal? TasaOCuota { get; set; }
-
+        /// <summary>
+        /// Atributo condicional para señalar el importe del impuesto trasladado que aplica al concepto. No se permiten valores negativos. Es requerido cuando TipoFactor sea Tasa o Cuota.
+        /// </summary>
         [XmlAttribute(AttributeName = "Importe")]
         [Range(0, double.MaxValue, ErrorMessage = "El importe no puede ser negativo.")]
         public decimal? Importe { get; set; }
@@ -425,25 +447,36 @@ namespace XMLCfdiGenerator.Models
     [XmlRoot(ElementName = "cfdi:Retenciones", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoRetenciones
     {
-        public List<NodoRetenciones> ListaTraslados;
+        public List<NodoRetencion> ListaTraslados;
     }
     [XmlRoot(ElementName = "Retencion")]
     public class NodoRetencion
     {
+        /// <summary>
+        /// Atributo requerido para señalar la base para el cálculo de la retención, la determinación de la base se realiza de acuerdo con las disposiciones fiscales vigentes. No se permiten valores negativos.
+        /// </summary>
         [XmlAttribute(AttributeName = "Base")]
         [Range(0.000001, double.MaxValue, ErrorMessage = "La base no puede ser negativa.")]
         public decimal Base { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar la clave del tipo de impuesto retenido aplicable al concepto.
+        /// </summary>
         [XmlAttribute(AttributeName = "Impuesto")]
         public string Impuesto { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar la clave del tipo de factor que se aplica a la base del impuesto.
+        /// </summary>
         [XmlAttribute(AttributeName = "TipoFactor")]
         public string TipoFactor { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar la tasa o cuota del impuesto que se retiene para el presente concepto.
+        /// </summary>
         [XmlAttribute(AttributeName = "TasaOCuota")]
         [Range(0.000000, double.MaxValue, ErrorMessage = "La tasa o cuota no puede ser negativa.")]
         public decimal TasaOCuota { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para señalar el importe del impuesto retenido que aplica al concepto. No se permiten valores negativos.
+        /// </summary>
         [XmlAttribute(AttributeName = "Importe")]
         [Range(0, double.MaxValue, ErrorMessage = "El importe no puede ser negativo.")]
         public decimal Importe { get; set; }
@@ -455,8 +488,6 @@ namespace XMLCfdiGenerator.Models
     [XmlRoot(ElementName = "cfdi:Impuestos", Namespace = "http://www.sat.gob.mx/cfd/4")]
     public class NodoImpuestos
     {
-        [XmlAttribute(AttributeName = "TotalImpuestosTrasladados")]
-        public decimal TotalImpuestosTrasladados { get; set; }
 
         public NodoTraslados? NodoTraslados { get; set; }
         public NodoRetenciones? NodoRetenciones { get; set; }
@@ -465,17 +496,26 @@ namespace XMLCfdiGenerator.Models
     [XmlRoot(ElementName = "ACuentaTerceros")]
     public class NodoACuentaTerceros
     {
+        /// <summary>
+        /// Atributo requerido para registrar la Clave del Registro Federal de Contribuyentes del contribuyente Tercero, a cuenta del que se realiza la operación.
+        /// </summary>
         [XmlAttribute(AttributeName = "RfcACuentaTerceros")]
         public string RfcACuentaTerceros { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para registrar el nombre, denominación o razón social del contribuyente Tercero correspondiente con el Rfc, a cuenta del que se realiza la operación.
+        /// </summary>
         [XmlAttribute(AttributeName = "NombreACuentaTerceros")]
         [StringLength(300, MinimumLength = 1, ErrorMessage = "El nombre debe tener entre 1 y 300 caracteres.")]
         [RegularExpression(@"[^|]{1,300}", ErrorMessage = "El nombre no puede contener el carácter '|'.")]
         public string NombreACuentaTerceros { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para incorporar la clave del régimen del contribuyente Tercero, a cuenta del que se realiza la operación.
+        /// </summary>
         [XmlAttribute(AttributeName = "RegimenFiscalACuentaTerceros")]
         public string RegimenFiscalACuentaTerceros { get; set; }
-
+        /// <summary>
+        /// Atributo requerido para incorporar el código postal del domicilio fiscal del Tercero, a cuenta del que se realiza la operación.
+        /// </summary>
         [XmlAttribute(AttributeName = "DomicilioFiscalACuentaTerceros")]
         [StringLength(5, MinimumLength = 5, ErrorMessage = "El código postal debe tener 5 caracteres.")]
         [RegularExpression(@"[0-9]{5}", ErrorMessage = "El código postal debe ser numérico de 5 dígitos.")]
